@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Register - capture image</title>
+  <style>
+    video, canvas, img { max-width: 100%; height: auto; }
+    #preview { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h2>Register with Email + Webcam</h2>
+
+  <form id="regForm">
+    <label>
+      Email:
+      <input type="email" name="email" id="email" required />
+    </label>
+    <div>
+      <video id="video" autoplay playsinline width="480" height="360"></video>
+    </div>
+    <div>
+      <button type="button" id="capture">Capture</button>
+      <button type="button" id="useFile">Choose File</button>
+      <input type="file" id="fileInput" accept="image/*" style="display:none"/>
+    </div>
+
+    <canvas id="canvas" style="display:none"></canvas>
+
+    <div id="preview"></div>
+
+    <div>
+      <button type="submit" id="submitBtn">Submit</button>
+    </div>
+  </form>
+
+  <pre id="response" style="white-space:pre-wrap;"></pre>
+
+  <script>
+    const services = [
+  { name: "Store", icon: "🛍️", url: "http://127.0.0.1:5003/shopping", ping: "http://127.0.0.1:5003/shopping" },
+  { name: "Register Face", icon: "📸", url: "http://127.0.0.1:5001/", ping: "http://127.0.0.1:5001/" },
+  { name: "Train Model", icon: "🧠", url: "http://127.0.0.1:5002/train", ping: "http://127.0.0.1:5002/train" },
+  { name: "Peek Users", icon: "👀", url: "http://127.0.0.1:5002/peek_faces", ping: "http://127.0.0.1:5002/peek_faces" }
+];
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureBtn = document.getElementById('capture');
+    const fileInput = document.getElementById('fileInput');
+    const useFile = document.getElementById('useFile');
+    const preview = document.getElementById('preview');
+    const responseBox = document.getElementById('response');
+
+
+
+    // start webcam
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        video.srcObject = stream;
+      } catch (err) {
+        console.warn('Camera not available:', err);
+        video.style.display = 'none';
+      }
+    }
+    startCamera();
+
+    let lastBlob = null;
+
+    captureBtn.addEventListener('click', () => {
+      const w = video.videoWidth || 640;
+      const h = video.videoHeight || 480;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, w, h);
+      canvas.toBlob((blob) => {
+        lastBlob = blob;
+        showPreview(URL.createObjectURL(blob));
+      }, 'image/jpeg', 0.9);
+    });
+
+    useFile.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (ev) => {
+      const f = ev.target.files && ev.target.files[0];
+      if (!f) return;
+      lastBlob = f;
+      showPreview(URL.createObjectURL(f));
+    });
+
+    function showPreview(src) {
+      preview.innerHTML = `<img id="previewImg" src="${src}" width="320"/>`;
+    }
+
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      responseBox.textContent = 'Uploading...';
+      const email = document.getElementById('email').value.trim();
+      if (!email) {
+        responseBox.textContent = 'Email required';
+        return;
+      }
+      const fd = new FormData();
+      fd.append('email', email);
+      if (lastBlob) {
+        fd.append('image', lastBlob, 'capture.jpg');
+      }
+
+      try {
+        const res = await fetch('/register', { method: 'POST', body: fd });
+        const data = await res.json();
+        responseBox.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        responseBox.textContent = 'Error: ' + err;
+      }
+    });
+  </script>
+</body>
+</html>

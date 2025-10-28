@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+echo "kill all python"
+pkill -f api/backend.py
+pkill -f api/register_face.py
+pkill -f api/store.py
+

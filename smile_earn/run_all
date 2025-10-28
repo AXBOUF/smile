@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# Start the Flask app for registering faces
+echo "==backend"
+
+python api/backend.py & 
+
+echo "==register_face"
+
+python api/register_face.py &
+
+echo "==store"
+python api/store.py &
+
+wait 

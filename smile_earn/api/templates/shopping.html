@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smile & Earn POS</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='kiosk.css') }}">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🛒 Smile & Earn</h1>
+      <p>Select your items below</p>
+    </header>
+
+    <section id="products" class="grid"></section>
+
+    <section class="cart-panel">
+      <h2>🧾 Cart Summary</h2>
+      <ul id="cart-list"></ul>
+      <button id="checkout-btn">Checkout</button>
+      <pre id="responseBox"></pre>
+    </section>
+  </div>
+
+  <script>
+    // Define your kiosk items (20+)
+    const products = [
+      { name: "Coffee", emoji: "☕", price: 5 },
+      { name: "Muffin", emoji: "🧁", price: 4 },
+      { name: "Sandwich", emoji: "🥪", price: 6 },
+      { name: "Juice", emoji: "🍹", price: 3 },
+      { name: "Bagel", emoji: "🥯", price: 5 },
+      { name: "Tea", emoji: "🍵", price: 3 },
+      { name: "Cookie", emoji: "🍪", price: 2 },
+      { name: "Smoothie", emoji: "🍓", price: 7 },
+      { name: "Croissant", emoji: "🥐", price: 4 },
+      { name: "Salad", emoji: "🥗", price: 6 },
+      { name: "Wrap", emoji: "🌯", price: 5 },
+      { name: "Cake", emoji: "🍰", price: 8 },
+      { name: "Donut", emoji: "🍩", price: 3 },
+      { name: "Ice Cream", emoji: "🍦", price: 5 },
+      { name: "Soup", emoji: "🥣", price: 4 },
+      { name: "Pizza Slice", emoji: "🍕", price: 6 },
+      { name: "Water", emoji: "💧", price: 1 },
+      { name: "Energy Drink", emoji: "⚡", price: 3 },
+      { name: "Taco", emoji: "🌮", price: 5 },
+      { name: "Soda", emoji: "🥤", price: 2 }
+    ];
+
+    const productsGrid = document.getElementById("products");
+    const cartList = document.getElementById("cart-list");
+    const responseBox = document.getElementById("responseBox");
+    const cart = {};
+
+    // Render product grid
+    products.forEach(p => {
+      const btn = document.createElement("button");
+      btn.className = "product-btn";
+      btn.innerHTML = `${p.emoji}<br>${p.name}<br>$${p.price}`;
+      btn.onclick = () => addToCart(p.name);
+      productsGrid.appendChild(btn);
+    });
+
+    // Add to cart
+    function addToCart(name) {
+      if (!cart[name]) cart[name] = 0;
+      cart[name]++;
+      renderCart();
+    }
+
+    function renderCart() {
+      cartList.innerHTML = "";
+      Object.entries(cart).forEach(([name, qty]) => {
+        const li = document.createElement("li");
+        li.textContent = `${name} x${qty}`;
+        cartList.appendChild(li);
+      });
+    }
+
+    document.getElementById("checkout-btn").addEventListener("click", async () => {
+    if (Object.keys(cart).length === 0) {
+      alert("Cart is empty!");
+      return;
+    }
+
+    // Build cart array with price and quantity
+    const cartArray = Object.entries(cart).map(([item, qty]) => {
+      const product = products.find(p => p.name === item);
+      return {
+        item,
+        quantity: qty,
+        price: product ? product.price : 0
+      };
+    });
+
+    // Calculate total
+    const total = cartArray.reduce((sum, p) => sum + p.price * p.quantity, 0);
+
+    responseBox.textContent = `⏳ Checking out $${total}...`;
+
+    try {
+      const formData = new FormData();
+      formData.append("cart", JSON.stringify(cartArray));
+      formData.append("cart_total", total);
+
+      const res = await fetch("/shopping", { method: "POST", body: formData });
+      const data = await res.json();
+
+      responseBox.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      responseBox.textContent = "❌ Error: " + err.message;
+    }
+  });
+</script>
+</body>
+</html>
